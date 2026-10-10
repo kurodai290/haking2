@@ -1,0 +1,1 @@
+const archive={North:{reading:17,signal:7},Central:{reading:42,signal:3},Harbor:{reading:731,signal:1}};console.log("weather archive loaded",archive);window.weatherChecksum=archive.North.signal*100+archive.Central.signal*10+archive.Harbor.signal;

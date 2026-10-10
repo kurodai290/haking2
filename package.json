@@ -1,0 +1,17 @@
+{
+  "name": "blackbox-railway-ctf",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BLACKBOX browser investigation CTF with server-side stage validation",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "express-session": "^1.18.1"
+  }
+}
