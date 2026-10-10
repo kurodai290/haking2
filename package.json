@@ -1,8 +1,8 @@
 {
-  "name": "blackbox-railway-ctf",
-  "version": "1.0.0",
+  "name": "blackbox-ctf-lab",
+  "version": "3.0.0",
   "private": true,
-  "description": "BLACKBOX browser investigation CTF with server-side stage validation",
+  "description": "Fictional browser investigation CTF lab",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
