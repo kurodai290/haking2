@@ -41,11 +41,13 @@
   const roomControls=$('roomControls'), roomInfo=$('roomInfo');
   const playerName=$('playerName'), roomCode=$('roomCode');
   const secretAnswers=$('secretAnswers'), secretAnswerList=$('secretAnswerList');
+  const secretStages=$('secretStages'), secretStageGrid=$('secretStageGrid');
   function chooseMode(mode){
     selectedMode=mode; modeButtons.forEach(b=>b.classList.toggle('selected',b.dataset.mode===mode));
     if(roomControls) roomControls.hidden=mode==='solo';
     if(roomCode){roomCode.maxLength=mode==='battle'?40:6;roomCode.placeholder=mode==='battle'?'参加コード / 特別コード':'例：A1B2C3';}
     if(secretAnswers)secretAnswers.hidden=true;
+    if(secretStages)secretStages.hidden=true;
     const start=$('soloStart'); if(start) start.querySelector('button').textContent=mode==='solo'?'一人で調査を開始 →':(mode==='team'?'チームルームを作成・参加して開始':'対戦ルームを作成・参加して開始');
   }
   modeButtons.forEach(b=>b.addEventListener('click',()=>chooseMode(b.dataset.mode)));
@@ -82,7 +84,20 @@
     try{
       const enteredCode=roomCode?.value||'';
       if(selectedMode==='battle'){
-        // The special phrase is checked only by the server; it is not stored in this JS file.
+        // Secret codes are verified by the server, not embedded in this client file.
+        try {
+          const jump=await roomRequest('/api/secret/stages',{code:enteredCode});
+          if(jump.ok && Array.isArray(jump.stages)){
+            if(secretStageGrid){secretStageGrid.replaceChildren();jump.stages.forEach(item=>{const button=document.createElement('button');button.type='button';button.textContent=item.label;button.addEventListener('click',async()=>{button.disabled=true;try{const moved=await roomRequest('/api/secret/jump',{code:enteredCode,stage:item.stage});if(moved.ok)window.location.assign(moved.nextPath);}catch(e){if(roomInfo)roomInfo.textContent=e.message;button.disabled=false;}});secretStageGrid.appendChild(button);});}
+            if(secretStages)secretStages.hidden=false;
+            if(secretAnswers)secretAnswers.hidden=true;
+            if(roomInfo)roomInfo.textContent='ステージ移動コードを確認しました。移動先を選んでください。';
+            return;
+          }
+        } catch (secretError) {
+          if(secretError.message==='コードが違います。') { /* try the other special code, then normal room join */ }
+          else throw secretError;
+        }
         try {
           const secret=await roomRequest('/api/secret/answers',{code:enteredCode});
           if(secret.ok && Array.isArray(secret.answers)){

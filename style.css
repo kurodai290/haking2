@@ -5,3 +5,5 @@
 
 .secret-answers{margin-top:18px;padding:16px;border:1px solid var(--line,#345);border-radius:10px;background:rgba(10,20,30,.65)}
 .secret-answers h3{margin-top:0}.secret-answers ol{padding-left:24px;line-height:1.9;overflow-wrap:anywhere}.secret-answers li{font-family:ui-monospace,Consolas,monospace}
+
+.secret-stage-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}.secret-stage-grid button{cursor:pointer;border:1px solid #2c5368;background:#102638;color:#e9f7ff;border-radius:8px;padding:12px}.secret-stage-grid button:hover{border-color:#58e6c5;background:#17384a}.secret-stage-grid button:disabled{opacity:.55;cursor:wait}@media(max-width:620px){.secret-stage-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

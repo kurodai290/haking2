@@ -82,6 +82,26 @@ app.post('/api/secret/answers',(req,res)=>{
   return res.json({ok:true,title:'BLACKBOX 正解一覧',answers:ANSWER_LIST});
 });
 
+// Hidden stage-jump unlock: only the phrase hash is stored server-side.
+const STAGE_JUMP_KEY_HASH = 'cffa22eb99d4f9ad190a58228e27e78be5432d97475e659ae1cc5f3ef40545e0';
+app.post('/api/secret/stages',(req,res)=>{
+  const submitted=crypto.createHash('sha256').update(String(req.body?.code ?? '').trim().toLowerCase()).digest('hex');
+  if(!equalHash(submitted,STAGE_JUMP_KEY_HASH)) return jsonError(res,403,'コードが違います。');
+  res.set('Cache-Control','no-store');
+  return res.json({ok:true,stages:Array.from({length:15},(_,i)=>({stage:i+1,label:`ステージ ${String(i+1).padStart(2,'0')}`}))});
+});
+app.post('/api/secret/jump',(req,res)=>{
+  const submitted=crypto.createHash('sha256').update(String(req.body?.code ?? '').trim().toLowerCase()).digest('hex');
+  if(!equalHash(submitted,STAGE_JUMP_KEY_HASH)) return jsonError(res,403,'コードが違います。');
+  const stage=Number(req.body?.stage);
+  if(!Number.isInteger(stage)||stage<1||stage>15) return jsonError(res,400,'ステージ番号が不正です。');
+  req.session.progress={stage,detour:null,tries:0};
+  const room=req.session.roomCode&&rooms.get(req.session.roomCode);
+  if(room&&room.mode==='team') room.progress={stage,detour:null,tries:0};
+  res.set('Cache-Control','no-store');
+  return res.json({ok:true,nextPath:`/stage${String(stage).padStart(2,'0')}.html`});
+});
+
 
 app.post('/api/rooms/create',(req,res)=>{
   const mode=String(req.body?.mode||'team');
