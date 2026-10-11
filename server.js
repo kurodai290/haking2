@@ -36,9 +36,56 @@ const CHECKPOINTS = [4,8,12];
 const normalize = value => String(value ?? '').trim().replace(/\s+/g,'').toUpperCase();
 const digest = value => crypto.createHash('sha256').update(normalize(value)).digest('hex');
 const equalHash = (a,b) => { try { return crypto.timingSafeEqual(Buffer.from(a,'hex'),Buffer.from(b,'hex')); } catch { return false; } };
-function state(req) { if (!req.session.progress) req.session.progress = {stage:1, detour:null, tries:0}; return req.session.progress; }
+
+// Rooms are intentionally in-memory for this prototype. A Railway restart clears rooms.
+const rooms = new Map();
+function state(req) {
+  const room = req.session.roomCode && rooms.get(req.session.roomCode);
+  if (room && room.mode === 'team') return room.progress;
+  if (!req.session.progress) req.session.progress = {stage:1, detour:null, tries:0};
+  return req.session.progress;
+}
+function publicRoom(room) {
+  return {code:room.code, mode:room.mode, name:room.name, players:room.players.map(p=>({name:p.name,online:true,stage:room.mode==='team'?room.progress.stage:p.progress.stage})), stage:room.mode==='team'?room.progress.stage:null, winner:room.winner||null};
+}
+function roomPlayer(req, room) { return room.players.find(p=>p.id===req.sessionID); }
+
 function jsonError(res,status,message) { return res.status(status).json({ok:false,message}); }
 
+
+app.post('/api/rooms/create',(req,res)=>{
+  const mode=String(req.body?.mode||'team');
+  if (!['team','battle'].includes(mode)) return jsonError(res,400,'チームまたは対戦モードを選んでください。');
+  const name=String(req.body?.name||'プレイヤー').trim().slice(0,20)||'プレイヤー';
+  let code; do { code=crypto.randomBytes(3).toString('hex').toUpperCase(); } while(rooms.has(code));
+  const room={code,mode,name,players:[],progress:{stage:1,detour:null,tries:0},winner:null,createdAt:Date.now()};
+  rooms.set(code,room);
+  req.session.roomCode=code; req.session.progress={stage:1,detour:null,tries:0};
+  room.players.push({id:req.sessionID,name,progress:req.session.progress});
+  res.json({ok:true,room:publicRoom(room)});
+});
+app.post('/api/rooms/join',(req,res)=>{
+  const code=String(req.body?.code||'').trim().toUpperCase();
+  const name=String(req.body?.name||'プレイヤー').trim().slice(0,20)||'プレイヤー';
+  const room=rooms.get(code);
+  if(!room) return jsonError(res,404,'ルームが見つかりません。コードを確認してください。');
+  if(room.players.length>=8) return jsonError(res,409,'このルームは満員です（最大8人）。');
+  if(room.players.some(p=>p.id===req.sessionID)) { req.session.roomCode=code; return res.json({ok:true,room:publicRoom(room)}); }
+  req.session.roomCode=code; req.session.progress={stage:1,detour:null,tries:0};
+  room.players.push({id:req.sessionID,name,progress:req.session.progress});
+  res.json({ok:true,room:publicRoom(room)});
+});
+app.get('/api/rooms/current',(req,res)=>{
+  const room=req.session.roomCode && rooms.get(req.session.roomCode);
+  if(!room) return res.json({ok:true,room:null});
+  res.set('Cache-Control','no-store'); res.json({ok:true,room:publicRoom(room),you:roomPlayer(req,room)?.name||'プレイヤー',progress:state(req)});
+});
+app.post('/api/rooms/leave',(req,res)=>{
+  const code=req.session.roomCode, room=code&&rooms.get(code);
+  if(room){room.players=room.players.filter(p=>p.id!==req.sessionID); if(!room.players.length) rooms.delete(code);}
+  delete req.session.roomCode;
+  res.json({ok:true});
+});
 app.get('/api/progress',(req,res)=>{ const p=state(req); res.set('Cache-Control','no-store'); res.json({ok:true,stage:p.stage,detour:p.detour,complete:p.stage>15}); });
 app.post('/api/verify',(req,res)=>{
   const p=state(req); const stage=Number(req.body?.stage); const answer=normalize(req.body?.answer);
@@ -48,10 +95,12 @@ app.post('/api/verify',(req,res)=>{
   p.tries++;
   const expected=ANSWERS[String(stage)];
   if (!equalHash(digest(answer),expected)) return res.json({ok:false,message:'不正解です。記録をもう一度調査してください。'});
+  const room=req.session.roomCode && rooms.get(req.session.roomCode);
   if (CHECKPOINTS.includes(stage)) { p.detour=stage; return res.json({ok:true,detour:true,nextPath:'/detour'+String(stage).padStart(2,'0')+'.html',message:'一次認証成功。別ページで調査を続けてください。'}); }
   p.stage=stage+1;
+  if(room && room.mode==='battle' && p.stage>15 && !room.winner) room.winner=roomPlayer(req,room)?.name||'プレイヤー';
   const next=p.stage>15?'/complete.html':'/stage'+String(p.stage).padStart(2,'0')+'.html';
-  return res.json({ok:true,detour:false,nextPath:next,message:'認証成功'});
+  return res.json({ok:true,detour:false,nextPath:next,message:room?.mode==='team'?'チームでステージを解除しました！':'認証成功'});
 });
 app.post('/api/verify-detour',(req,res)=>{
   const p=state(req); const checkpoint=Number(req.body?.checkpoint); const answer=normalize(req.body?.answer);
@@ -61,6 +110,7 @@ app.post('/api/verify-detour',(req,res)=>{
   p.tries++;
   if (!equalHash(digest(answer),DETOUR_ANSWERS[String(checkpoint)])) return res.json({ok:false,message:'照合失敗。関連ページをもう一度確認してください。'});
   p.stage=checkpoint+1; p.detour=null;
+  const room=req.session.roomCode && rooms.get(req.session.roomCode); if(room && room.mode==='battle' && p.stage>15 && !room.winner) room.winner=roomPlayer(req,room)?.name||'プレイヤー';
   const next='/stage'+String(p.stage).padStart(2,'0')+'.html';
   return res.json({ok:true,nextPath:next,message:'URL照合成功。次のステージを解除しました。'});
 });

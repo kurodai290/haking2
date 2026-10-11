@@ -34,5 +34,72 @@
     try { const r=await fetch('/api/progress',{credentials:'same-origin',cache:'no-store'}); const p=await r.json(); const current=Number(p.stage||1); const done=Math.min(15,current-1); $('progressText').textContent=`${done} / 15`; $('progressBar').style.width=`${done/15*100}%`; for(let i=1;i<=15;i++){const d=document.createElement('div');d.className='stage-dot '+(i<current?'done':i===current?'current':'');d.textContent=String(i).padStart(2,'0');grid.appendChild(d);} }
     catch { grid.textContent='進行状況を読み込めません'; }
   }
+
+  // Mode selector and lightweight room lobby (HTTP polling; no extra service required).
+  const modeButtons=[...document.querySelectorAll('.mode-choice')];
+  let selectedMode='solo';
+  const roomControls=$('roomControls'), roomInfo=$('roomInfo');
+  const playerName=$('playerName'), roomCode=$('roomCode');
+  function chooseMode(mode){
+    selectedMode=mode; modeButtons.forEach(b=>b.classList.toggle('selected',b.dataset.mode===mode));
+    if(roomControls) roomControls.hidden=mode==='solo';
+    const start=$('soloStart'); if(start) start.querySelector('button').textContent=mode==='solo'?'一人で調査を開始 →':(mode==='team'?'チームルームを作成・参加して開始':'対戦ルームを作成・参加して開始');
+  }
+  modeButtons.forEach(b=>b.addEventListener('click',()=>chooseMode(b.dataset.mode)));
+  const startLink=$('soloStart');
+  if(startLink) startLink.addEventListener('click',async e=>{
+    if(selectedMode==='solo') return;
+    e.preventDefault();
+    try{
+      const d=await roomRequest('/api/rooms/current');
+      if(!d.room){if(roomInfo)roomInfo.textContent='先にルームを作成するか、参加コードで参加してください。';return;}
+      window.location.assign('/stage'+String(d.progress?.stage||1).padStart(2,'0')+'.html');
+    }catch(err){if(roomInfo)roomInfo.textContent=err.message;}
+  });
+  async function roomRequest(path,body){
+    const response=await fetch(path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json'},credentials:'same-origin',cache:'no-store',body:body?JSON.stringify(body):undefined});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data.message||'ルーム通信に失敗しました。');
+    return data;
+  }
+  function renderRoom(data){
+    if(!roomInfo)return;
+    if(!data.room){roomInfo.textContent='ルーム未参加';return;}
+    const r=data.room, mode=r.mode==='team'?'チーム攻略':'人と対決';
+    roomInfo.textContent=`${mode}ルーム：${r.code}\n参加者（${r.players.length}/8）：${r.players.map(p=>p.name).join('、')}\n${r.mode==='team'?'チーム共通の進行状況：ステージ '+r.stage:'各プレイヤーが個別に進行。最初に全15ステージを突破した人が勝者。'}${r.winner?'\n🏆 勝者：'+r.winner:''}`;
+  }
+  const createRoom=$('createRoom'), joinRoom=$('joinRoom');
+  if(createRoom) createRoom.addEventListener('click',async()=>{
+    createRoom.disabled=true;
+    try{const d=await roomRequest('/api/rooms/create',{mode:selectedMode==='battle'?'battle':'team',name:playerName?.value||'プレイヤー'});renderRoom(d);if(roomCode)roomCode.value=d.room.code;roomInfo.textContent+='\nルームコードを友達に共有してください。';}
+    catch(e){if(roomInfo)roomInfo.textContent=e.message;}finally{createRoom.disabled=false;}
+  });
+  if(joinRoom) joinRoom.addEventListener('click',async()=>{
+    joinRoom.disabled=true;
+    try{const d=await roomRequest('/api/rooms/join',{code:roomCode?.value||'',name:playerName?.value||'プレイヤー'});renderRoom(d);if(roomInfo)roomInfo.textContent+='\nルームに参加しました。ステージ01から開始します。';window.location.assign('/stage01.html');}
+    catch(e){if(roomInfo)roomInfo.textContent=e.message;}finally{joinRoom.disabled=false;}
+  });
+  if(createRoom){
+    const originalText=createRoom.textContent;
+    createRoom.addEventListener('click',()=>{createRoom.textContent='作成しました';setTimeout(()=>{createRoom.textContent=originalText;},1200);});
+  }
+  async function refreshRoom(){
+    try{const d=await roomRequest('/api/rooms/current');if(d.room)renderRoom(d);}catch{}
+  }
+  refreshRoom();
+  // Team members follow the shared server-side stage as soon as another teammate unlocks it.
+  if(stage){
+    setInterval(async()=>{
+      try{
+        const d=await roomRequest('/api/rooms/current');
+        if(!d.room||d.room.mode!=='team'||!d.progress)return;
+        const p=d.progress;
+        if(p.detour && detour!==p.detour) window.location.assign('/detour'+String(p.detour).padStart(2,'0')+'.html');
+        else if(!p.detour && p.stage!==stage && p.stage<=15) window.location.assign('/stage'+String(p.stage).padStart(2,'0')+'.html');
+        else if(p.stage>15) window.location.assign('/complete.html');
+      }catch{}
+    },3000);
+  }
+
   loadProgress();
 })();
