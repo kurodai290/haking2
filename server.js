@@ -15,7 +15,7 @@ const ANSWERS = {
   "2": "e18bc4db63e3986645aa9887360d4d222f3f7925e38ee2c8202a7efb7ec1875a",
   "3": "7cc6f41f65ae829c10fb2701eab017d43650bcdefdcdd0363d9d347a321ffa5a",
   "4": "33c604aed594a9618f582adf5c78809254b81770ae3638d628e3c3b5012c357a",
-  "5": "46989b6fb57cb658fbf9a234b4ecc512675be870c947d5a89e76506a16a2b9d7",
+  "5": "3abf4b3119a4ae580b677b746d03d9fa1620801bab466f9e5843059e404c712b",
   "6": "3a5e8ee3ff8e82c6a1f187e2df1eac027208d8f7b92dcaeeb95573ab5855fb00",
   "7": "21db98ac119ed289000cf0b434074132747077c255d22cb83d7065ba61054b55",
   "8": "d4a084f26e57caa6094c0f3658e9e185625ef680ad21ad9e244fff928978a5f9",
@@ -23,8 +23,8 @@ const ANSWERS = {
   "10": "bbe6b9b1a150c18a8d390d7521ecf91b8042651322b70c2b9f232be583cf1a8a",
   "11": "185c102b2470a0f77e9e1a5a74bf6b3c3c12407b36e4a678211d978adbfd7aca",
   "12": "4417f6ff4735a19f0f5cd07442dd4a357d5e0d17e61303dddb009fd5a2cb0f9c",
-  "13": "95a802d9fc26298ed631ee0742fede778082774dc9dcc25917c04d0f7c605216",
-  "14": "e8ec4668681b26f4a474f32ae2462e508a84d45ff55d65d81aa89c3d59da9861",
+  "13": "b46a15e5296b47cd1c3037b45eab32fb624b2292a3e3e78b01b1af7471722fe6",
+  "14": "2c19a80afad37e63607d8b9312b943cd09b578e55859bde7bd3d7a7f99fa7ad9",
   "15": "a275ed14d4eddac54280cd3bfb9bd751a0ab888f8c16fccdc000eda7475fd47e"
 };
 const DETOUR_ANSWERS = {
@@ -71,7 +71,7 @@ const ANSWER_LIST = [
   {case:'ステージ12', answer:'18-QX'},
   {case:'追加調査12', answer:'2234'},
   {case:'ステージ13', answer:'/api/session_KS'},
-  {case:'ステージ14', answer:'LBR6'},
+  {case:'ステージ14', answer:'LBR04'},
   {case:'ステージ15', answer:'NOVA-17-03'}
 ];
 app.post('/api/secret/answers',(req,res)=>{
