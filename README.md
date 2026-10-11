@@ -41,3 +41,10 @@
 - この版は追加サービス不要のHTTPポーリング方式です。
 - ルーム情報はサーバーメモリ内に保存される試作版です。Railwayの再起動・再デプロイでルームや進行中の対戦は消えます。
 - ルームは最大8人。永続保存や厳密なオンライン/切断管理が必要な場合は、Redisやデータベースを追加してください。
+
+
+## Hidden answer-list code
+On the home page, select VERSUS and enter the special code in the join-code field, then press Join. The server verifies the code hash and only then returns the answer list. The special code itself is not stored in HTML or browser JavaScript. Note: after successful authentication, the answer list is sent to the browser so it can be displayed; an authorized user can inspect that response in developer tools.
+
+## Answer correction
+Stage 02 server verification has been corrected to match the clue answer `08M4`. Stage 04's current server hash already matches `0605`; the ZIP includes that confirmed hash and its additional-route answer `0605-32`.

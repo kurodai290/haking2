@@ -40,9 +40,12 @@
   let selectedMode='solo';
   const roomControls=$('roomControls'), roomInfo=$('roomInfo');
   const playerName=$('playerName'), roomCode=$('roomCode');
+  const secretAnswers=$('secretAnswers'), secretAnswerList=$('secretAnswerList');
   function chooseMode(mode){
     selectedMode=mode; modeButtons.forEach(b=>b.classList.toggle('selected',b.dataset.mode===mode));
     if(roomControls) roomControls.hidden=mode==='solo';
+    if(roomCode){roomCode.maxLength=mode==='battle'?40:6;roomCode.placeholder=mode==='battle'?'参加コード / 特別コード':'例：A1B2C3';}
+    if(secretAnswers)secretAnswers.hidden=true;
     const start=$('soloStart'); if(start) start.querySelector('button').textContent=mode==='solo'?'一人で調査を開始 →':(mode==='team'?'チームルームを作成・参加して開始':'対戦ルームを作成・参加して開始');
   }
   modeButtons.forEach(b=>b.addEventListener('click',()=>chooseMode(b.dataset.mode)));
@@ -76,8 +79,25 @@
   });
   if(joinRoom) joinRoom.addEventListener('click',async()=>{
     joinRoom.disabled=true;
-    try{const d=await roomRequest('/api/rooms/join',{code:roomCode?.value||'',name:playerName?.value||'プレイヤー'});renderRoom(d);if(roomInfo)roomInfo.textContent+='\nルームに参加しました。ステージ01から開始します。';window.location.assign('/stage01.html');}
-    catch(e){if(roomInfo)roomInfo.textContent=e.message;}finally{joinRoom.disabled=false;}
+    try{
+      const enteredCode=roomCode?.value||'';
+      if(selectedMode==='battle'){
+        // The special phrase is checked only by the server; it is not stored in this JS file.
+        try {
+          const secret=await roomRequest('/api/secret/answers',{code:enteredCode});
+          if(secret.ok && Array.isArray(secret.answers)){
+            if(secretAnswerList){secretAnswerList.replaceChildren();secret.answers.forEach(item=>{const li=document.createElement('li');li.textContent=`${item.case}：${item.answer}`;secretAnswerList.appendChild(li);});}
+            if(secretAnswers)secretAnswers.hidden=false;
+            if(roomInfo)roomInfo.textContent='特別コードを確認しました。正解一覧を表示します。';
+            return;
+          }
+        } catch (secretError) {
+          if(secretError.message==='コードが違います。') { /* continue as a normal room code */ }
+          else throw secretError;
+        }
+      }
+      const d=await roomRequest('/api/rooms/join',{code:enteredCode,name:playerName?.value||'プレイヤー'});renderRoom(d);if(roomInfo)roomInfo.textContent+='\nルームに参加しました。ステージ01から開始します。';window.location.assign('/stage01.html');
+    } catch(e){if(roomInfo)roomInfo.textContent=e.message;}finally{joinRoom.disabled=false;}
   });
   if(createRoom){
     const originalText=createRoom.textContent;

@@ -12,7 +12,7 @@ app.use(session({secret:process.env.SESSION_SECRET || crypto.randomBytes(32).toS
 // 正解はサーバー側にだけ保存。クライアントへは返しません。
 const ANSWERS = {
   "1": "231ced6d606c13bd2546d9343615d70e430ee48f5ab437523a6d6fb1904511b6",
-  "2": "bf8e5dbb603f0f5447640b79fa5d5e27dd239d8a63ed9c6b369d887009a9467d",
+  "2": "e18bc4db63e3986645aa9887360d4d222f3f7925e38ee2c8202a7efb7ec1875a",
   "3": "7cc6f41f65ae829c10fb2701eab017d43650bcdefdcdd0363d9d347a321ffa5a",
   "4": "33c604aed594a9618f582adf5c78809254b81770ae3638d628e3c3b5012c357a",
   "5": "46989b6fb57cb658fbf9a234b4ecc512675be870c947d5a89e76506a16a2b9d7",
@@ -51,6 +51,36 @@ function publicRoom(room) {
 function roomPlayer(req, room) { return room.players.find(p=>p.id===req.sessionID); }
 
 function jsonError(res,status,message) { return res.status(status).json({ok:false,message}); }
+
+// Hidden answer-list unlock: only the hash of the unlock phrase is kept for comparison.
+const ANSWER_LIST_KEY_HASH = '5775e512e69523c1f9c4e20d052ba4b8c3b198c39b9d8005b219aa434945ed15';
+const ANSWER_LIST = [
+  {case:'ステージ01', answer:'ORBIT-17'},
+  {case:'ステージ02', answer:'08M4'},
+  {case:'ステージ03', answer:'HTTP_R7'},
+  {case:'ステージ04', answer:'0605'},
+  {case:'追加調査04', answer:'0605-32'},
+  {case:'ステージ05', answer:'TAG9-ZX'},
+  {case:'ステージ06', answer:'BLUE24'},
+  {case:'ステージ07', answer:'△○□'},
+  {case:'ステージ08', answer:'XZ-12'},
+  {case:'追加調査08', answer:'1751'},
+  {case:'ステージ09', answer:'TAG9-09'},
+  {case:'ステージ10', answer:'503/2'},
+  {case:'ステージ11', answer:'ASH-04-RD'},
+  {case:'ステージ12', answer:'18-QX'},
+  {case:'追加調査12', answer:'2234'},
+  {case:'ステージ13', answer:'/api/session_KS'},
+  {case:'ステージ14', answer:'LBR6'},
+  {case:'ステージ15', answer:'NOVA-17-03'}
+];
+app.post('/api/secret/answers',(req,res)=>{
+  const submitted = crypto.createHash('sha256').update(String(req.body?.code ?? '').trim().toLowerCase()).digest('hex');
+  if (!equalHash(submitted, ANSWER_LIST_KEY_HASH)) return jsonError(res,403,'コードが違います。');
+  res.set('Cache-Control','no-store');
+  res.set('Pragma','no-cache');
+  return res.json({ok:true,title:'BLACKBOX 正解一覧',answers:ANSWER_LIST});
+});
 
 
 app.post('/api/rooms/create',(req,res)=>{
