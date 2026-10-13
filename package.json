@@ -1,8 +1,8 @@
 {
   "name": "blackbox-ctf-lab",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "private": true,
-  "description": "Fictional browser investigation CTF lab",
+  "description": "BLACKBOX 30-stage fictional investigation game",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

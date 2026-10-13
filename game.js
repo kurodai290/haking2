@@ -31,7 +31,7 @@
   const reset=$('reset'); if(reset) reset.addEventListener('click',async()=>{if(!confirm('このブラウザーの進行状況を最初からに戻しますか？'))return;reset.disabled=true;try{await request('/api/reset',{});window.location.assign('/index.html');}catch(e){say(e.message,'error');reset.disabled=false;}});
   async function loadProgress(){
     const grid=$('stageGrid'); if(!grid)return;
-    try { const r=await fetch('/api/progress',{credentials:'same-origin',cache:'no-store'}); const p=await r.json(); const current=Number(p.stage||1); const done=Math.min(15,current-1); $('progressText').textContent=`${done} / 15`; $('progressBar').style.width=`${done/15*100}%`; for(let i=1;i<=15;i++){const d=document.createElement('div');d.className='stage-dot '+(i<current?'done':i===current?'current':'');d.textContent=String(i).padStart(2,'0');grid.appendChild(d);} }
+    try { const r=await fetch('/api/progress',{credentials:'same-origin',cache:'no-store'}); const p=await r.json(); const current=Number(p.stage||1); const done=Math.min(30,current-1); $('progressText').textContent=`${done} / 15`; $('progressBar').style.width=`${done/30*100}%`; for(let i=1;i<=30;i++){const d=document.createElement('div');d.className='stage-dot '+(i<current?'done':i===current?'current':'');d.textContent=String(i).padStart(2,'0');grid.appendChild(d);} }
     catch { grid.textContent='進行状況を読み込めません'; }
   }
 
@@ -71,7 +71,7 @@
     if(!roomInfo)return;
     if(!data.room){roomInfo.textContent='ルーム未参加';return;}
     const r=data.room, mode=r.mode==='team'?'チーム攻略':'人と対決';
-    roomInfo.textContent=`${mode}ルーム：${r.code}\n参加者（${r.players.length}/8）：${r.players.map(p=>p.name).join('、')}\n${r.mode==='team'?'チーム共通の進行状況：ステージ '+r.stage:'各プレイヤーが個別に進行。最初に全15ステージを突破した人が勝者。'}${r.winner?'\n🏆 勝者：'+r.winner:''}`;
+    roomInfo.textContent=`${mode}ルーム：${r.code}\n参加者（${r.players.length}/8）：${r.players.map(p=>p.name).join('、')}\n${r.mode==='team'?'チーム共通の進行状況：ステージ '+r.stage:'各プレイヤーが個別に進行。最初に全30ステージを突破した人が勝者。'}${r.winner?'\n🏆 勝者：'+r.winner:''}`;
   }
   const createRoom=$('createRoom'), joinRoom=$('joinRoom');
   if(createRoom) createRoom.addEventListener('click',async()=>{
@@ -130,8 +130,8 @@
         if(!d.room||d.room.mode!=='team'||!d.progress)return;
         const p=d.progress;
         if(p.detour && detour!==p.detour) window.location.assign('/detour'+String(p.detour).padStart(2,'0')+'.html');
-        else if(!p.detour && p.stage!==stage && p.stage<=15) window.location.assign('/stage'+String(p.stage).padStart(2,'0')+'.html');
-        else if(p.stage>15) window.location.assign('/complete.html');
+        else if(!p.detour && p.stage!==stage && p.stage<=30) window.location.assign('/stage'+String(p.stage).padStart(2,'0')+'.html');
+        else if(p.stage>30) window.location.assign('/complete.html');
       }catch{}
     },3000);
   }
