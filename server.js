@@ -178,6 +178,8 @@ app.post('/api/rooms/leave',(req,res)=>{
   res.json({ok:true});
 });
 app.get('/api/progress',(req,res)=>{ const p=state(req); res.set('Cache-Control','no-store'); res.json({ok:true,stage:p.stage,detour:p.detour,complete:p.stage>30}); });
+// Stage 13 fictional investigation endpoint: intentionally visible in DevTools Network.
+app.get('/api/session_KS',(req,res)=>{ res.set('Cache-Control','no-store'); res.json({ok:true,case:'NETWORK WINDOW',environment:'BLACKBOX fictional lab',requestId:'KS-13',note:'照合用の架空ログ。外部サービスへのアクセスは不要。'}); });
 app.post('/api/verify',(req,res)=>{
   const p=state(req); const stage=Number(req.body?.stage); const answer=normalize(req.body?.answer);
   res.set('Cache-Control','no-store');

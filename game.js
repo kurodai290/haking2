@@ -136,5 +136,8 @@
     },3000);
   }
 
+  // Stage 13: generate a real, safe in-game request so learners can find it in DevTools Network.
+  if (stage === 13) { fetch('/api/session_KS', {credentials:'same-origin', cache:'no-store'}).catch(() => {}); }
+
   loadProgress();
 })();
